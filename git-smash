@@ -1,5 +1,33 @@
 #!/bin/bash
 
+# Name:
+#   git-smash - A script to rebase, squash, and optionally merge the current branch into another branch
+#
+# Synopsis:
+#   git-smash [<branch>]
+#
+# Description:
+#   Checkout the <branch>, update it with `git pull`, checkout the current branch, interactively rebase
+#   onto <branch>, `git push -f` the current branch, ask if the user wants to merge the current branch
+#   into <branch>, merge the current branch into <branch>, `git push --ff-only`.
+#
+# Options:
+#   <branch>
+#     The branch to rebase onto, and optionally merge into. This parameter must be a local branch name.
+#     If this is not specified, the 'master' branch will be used as the default.
+#
+# Configuration
+#   For this script to work effectively, the branch that you are rebasing onto and merging into must
+#   track an upstream remote. The easiest way to do this is to checkout another branch, then overwrite
+#   the local branch with the upstream branch. Assuming this branch is 'master' this can be done with
+#   the following commands:
+#
+#     git checkout test                      # checkout any other branch
+#     git checkout master -B upstream/master # overwrite local branch 'master' with upstream/master
+#
+# Author
+#   Jon Buckley <jon@jbuckley.ca>
+
 # Is git installed?
 if ! git --version &>/dev/null; then
   echo "error: git is not installed"
@@ -36,7 +64,7 @@ if ! git checkout $rebase_on; then
 fi
 
 if ! git pull --ff-only; then
-  echo "error: Could not update branch to rebase on"
+  echo "error: Could not update branch to rebase on. Have you set an upstream remote?"
   exit 1
 fi
 
@@ -53,7 +81,7 @@ fi
 
 # Push rebased branch to remote (important for Github pull requests)
 if ! git push --force; then
-  echo "error: Could not push rebased branch to remote"
+  echo "error: Could not push rebased branch to remote. Have you set a tracking branch?"
   exit 1
 fi
 
@@ -78,6 +106,6 @@ fi
 
 # Push merged branch to remote
 if ! git push; then
-  echo "error: Could not push merged branch to remote"
+  echo "error: Could not push merged branch to remote. Have you set an upstream remote?"
   exit 1
 fi
