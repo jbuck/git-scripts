@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Is git installed?
+if ! git --version &>/dev/null; then
+  echo "error: git is not installed"
+  exit 1
+fi
+
+# Are we in a git repository?
+if ! git status &>/dev/null; then
+  echo "error: Not a git repository (or any of the parent directories): .git"
+  exit 1
+fi
+
+# Deal with command line arguments
+if [ -n "$1" ]; then
+  rebase_on=$2
+else
+  rebase_on='master'
+fi
+
+# Check if we've checked out a branch
+if ! git symbolic-ref -q HEAD &>/dev/null; then
+  echo "error: You are in a detached HEAD state"
+  exit 1
+fi
+
+# Get the current branch name
+branch_name=$(git symbolic-ref -q HEAD)
+branch_name=${branch_name##refs/heads/}
+
+# Update the branch to rebase on
+if ! git checkout $rebase_on; then
+  echo "error: Could not checkout branch to rebase on"
+  exit 1
+fi
+
+if ! git pull --ff-only; then
+  echo "error: Could not update branch to rebase on"
+  exit 1
+fi
+
+if ! git checkout $branch_name; then
+  echo "error: Could not checkout branch to be rebased"
+  exit 1
+fi
+
+# Attempt the interactive rebase
+if ! git rebase --interactive $rebase_on; then
+  echo "error: git rebase did not complete successfully"
+  exit 1
+fi
+
+# Push rebased branch to remote (important for Github pull requests)
+if ! git push --force; then
+  echo "error: Could not push rebased branch to remote"
+  exit 1
+fi
+
+# Check if we should merge this into the rebase_on branch
+echo "Do you want to merge this branch into $rebase_on [y/N]?"
+read cont
+
+if [ "$cont" != "y" ]; then
+  exit 0
+fi
+
+# Merge rebased branch to master
+if ! git checkout $rebase_on; then
+  echo "error: Could not checkout branch to merge"
+  exit 1
+fi
+
+if ! git merge --ff-only $branch_name; then
+  echo "error: Could not merge rebased branch"
+  exit 1
+fi
+
+# Push merged branch to remote
+if ! git push -n; then
+  echo "error: Could not push merged branch to remote"
+  exit 1
+fi
