@@ -77,7 +77,7 @@ if ! git merge --ff-only $branch_name; then
 fi
 
 # Push merged branch to remote
-if ! git push -n; then
+if ! git push; then
   echo "error: Could not push merged branch to remote"
   exit 1
 fi
